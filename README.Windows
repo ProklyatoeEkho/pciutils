@@ -9,3 +9,6 @@ from http://www.internals.com/.
 
 However, you need to use win32/config.{h,mk} instead of the automatically
 generated lib/config.{h,mk} as lib/configure does not run on Windows.
+
+!!! IMPORTANT NOTE for NVA tools (nvapeek, nvapoke and nva_counters_config) !!!
+These tools only work on my graphic card (ie. NV86) and on my BIOS (see lib/i386-io-windows.h to see why).
