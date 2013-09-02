@@ -31,11 +31,15 @@ typedef bool (_stdcall* INITIALIZEWINIO)(void);
 typedef void (_stdcall* SHUTDOWNWINIO)(void);
 typedef bool (_stdcall* GETPORTVAL)(WORD,PDWORD,BYTE);
 typedef bool (_stdcall* SETPORTVAL)(WORD,DWORD,BYTE);
+typedef bool (_stdcall* GETPHYSLONG)(PBYTE,PDWORD);
+typedef bool (_stdcall* SETPHYSLONG)(PBYTE,DWORD);
 
 SHUTDOWNWINIO ShutdownWinIo;
 GETPORTVAL GetPortVal;
 SETPORTVAL SetPortVal;
 INITIALIZEWINIO InitializeWinIo;
+GETPHYSLONG GetPhysLong;
+SETPHYSLONG SetPhysLong;
 
 static int
 intel_setup_io(struct pci_access *a)
@@ -74,6 +78,8 @@ intel_setup_io(struct pci_access *a)
   GETPROC(ShutdownWinIo, SHUTDOWNWINIO);
   GETPROC(GetPortVal, GETPORTVAL);
   GETPROC(SetPortVal, SETPORTVAL);
+  GETPROC(GetPhysLong, GETPHYSLONG);
+  GETPROC(SetPhysLong, SETPHYSLONG);
 
 #undef GETPROC
 
@@ -138,4 +144,22 @@ static inline void
 outl(u32 value, u16 port)
 {
   SetPortVal(port, value, 4);
+}
+
+static uint32_t
+nva_rd32(int32_t reg)
+{
+  DWORD value;
+
+  /* XXX: This read at the first region of my GPU (FIXME)! */
+  if (GetPhysLong(0xce000000 + reg, &value))
+    return (uint32_t)value;
+  return 0;
+}
+
+static void
+nva_wr32(int32_t reg, uint32_t value)
+{
+  /* XXX: This write at the first region of my GPU (FIXME)! */
+  SetPhysLong(0xce000000 + reg, value);
 }
