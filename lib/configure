@@ -36,10 +36,14 @@ if [ -z "$HOST" ] ; then
 	then
 		sys=freebsd
 	fi
-	if [ "$sys" = "CYGWIN_NT-5.1" -o "$sys" = "CYGWIN_NT-6.0" ]
-	then
-		sys=cygwin
-	fi
+	case $sys in
+		*CYGWIN*)
+			sys=cygwin
+			;;
+		*MINGW*)
+			sys=mingw
+			;;
+	esac
 	HOST=${3:-$cpu-$sys}
 fi
 [ -n "$RELEASE" ] && rel="${RELEASE}"
@@ -47,13 +51,24 @@ fi
 host=`echo $HOST | sed -e 's/^\([^-]*\)-\([^-]*\)-\([^-]*\)-\([^-]*\)$/\1-\3/' -e 's/^\([^-]*\)-\([^-]*\)$/\1--\2/' | tr '[A-Z]' '[a-z]'`
 cpu=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
 sys=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
+
+#fix up cpu when cross-compiling
+cpu=`echo $cpu | sed 's:^i[3456]86$:i386:'`
+
 echo " $host $rel $cpu $sys"
 
 c=config.h
 m=config.mk
 echo >$c '#define PCI_CONFIG_H'
 echo >>$c "#define PCI_ARCH_`echo $cpu | tr '[a-z]' '[A-Z]'`"
-echo >>$c "#define PCI_OS_`echo $sys | tr '[a-z]' '[A-Z]'`"
+case $sys in
+	mingw*)
+		echo >>$c "#define PCI_OS_WINDOWS"
+		;;
+	*)
+		echo >>$c "#define PCI_OS_`echo $sys | tr '[a-z]' '[A-Z]'`"
+		;;
+esac
 echo >$m 'WITH_LIBS='
 
 echo_n "Looking for access methods..."
@@ -123,6 +138,13 @@ case $sys in
 		echo_n " i386-ports"
 		echo >>$c '#define PCI_HAVE_PM_INTEL_CONF'
 		echo >>$m 'WITH_LIBS+=-lioperm'
+		echo >>$m 'EXEEXT=.exe'
+		;;
+	mingw*)
+		echo_n " i386-ports"
+		echo >>$c '#define PCI_HAVE_PM_INTEL_CONF'
+		echo >>$m 'EXEEXT=.exe'
+		DNS=no
 		;;
 	beos|haiku)
 		case $cpu in
@@ -160,7 +182,15 @@ if [ "$ZLIB" = yes ] ; then
 else
 	echo >>$c '#define PCI_IDS "pci.ids"'
 fi
-echo >>$c "#define PCI_PATH_IDS_DIR \"$IDSDIR\""
+
+case $sys in
+	mingw*)
+		echo >>$c "#define PCI_PATH_IDS_DIR \".\""
+		;;
+	*)
+		echo >>$c "#define PCI_PATH_IDS_DIR \"$IDSDIR\""
+		;;
+esac
 
 echo_n "Checking for DNS support... "
 if [ "$DNS" = yes -o "$DNS" = no ] ; then

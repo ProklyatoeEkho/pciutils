@@ -28,6 +28,12 @@ LIBKMOD=
 # (as we use proper symbol versioning, this seldom needs changing)
 ABI_VERSION=.3
 
+ifdef HOST
+ifndef CROSS_COMPILE
+CROSS_COMPILE=$(HOST)-
+endif
+endif
+
 # Installation directories
 PREFIX=/usr/local
 SBINDIR=$(PREFIX)/sbin
@@ -43,6 +49,7 @@ INSTALL=install
 DIRINSTALL=install -d
 STRIP=-s
 CC=$(CROSS_COMPILE)gcc
+LD=$(CROSS_COMPILE)ld
 AR=$(CROSS_COMPILE)ar
 RANLIB=$(CROSS_COMPILE)ranlib
 
@@ -56,7 +63,7 @@ PCIINC_INS=lib/config.h lib/header.h lib/pci.h lib/types.h
 
 export
 
-all: lib/$(PCILIB) lspci setpci example lspci.8 setpci.8 pcilib.7 update-pciids update-pciids.8 $(PCI_IDS)
+all: lib/$(PCILIB) lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) lspci.8 setpci.8 pcilib.7 update-pciids update-pciids.8 $(PCI_IDS)
 
 lib/$(PCILIB): $(PCIINC) force
 	$(MAKE) -C lib all
@@ -66,8 +73,10 @@ force:
 lib/config.h lib/config.mk:
 	cd lib && ./configure
 
-lspci: lspci.o ls-vpd.o ls-caps.o ls-ecaps.o ls-kernel.o ls-tree.o ls-map.o common.o lib/$(PCILIB)
-setpci: setpci.o common.o lib/$(PCILIB)
+lspci$(EXEEXT): lspci.o ls-vpd.o ls-caps.o ls-ecaps.o ls-kernel.o ls-tree.o ls-map.o common.o lib/$(PCILIB)
+	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
+setpci$(EXEEXT): setpci.o common.o lib/$(PCILIB)
+	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 LSPCIINC=lspci.h pciutils.h $(PCIINC)
 lspci.o: lspci.c $(LSPCIINC)
@@ -89,7 +98,8 @@ update-pciids: update-pciids.sh
 	chmod +x $@
 
 # The example of use of libpci
-example: example.o lib/$(PCILIB)
+example$(EXEEXT): example.o lib/$(PCILIB)
+	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 example.o: example.c $(PCIINC)
 
 %: %.o
@@ -100,7 +110,7 @@ example.o: example.c $(PCIINC)
 
 clean:
 	rm -f `find . -name "*~" -o -name "*.[oa]" -o -name "\#*\#" -o -name TAGS -o -name core -o -name "*.orig"`
-	rm -f update-pciids lspci setpci example lib/config.* *.[78] pci.ids.* lib/*.pc lib/*.so lib/*.so.*
+	rm -f update-pciids lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) lib/config.* *.[78] pci.ids.* lib/*.pc lib/*.so lib/*.so.*
 	rm -rf maint/dist
 
 distclean: clean
@@ -108,7 +118,7 @@ distclean: clean
 install: all
 # -c is ignored on Linux, but required on FreeBSD
 	$(DIRINSTALL) -m 755 $(DESTDIR)$(SBINDIR) $(DESTDIR)$(IDSDIR) $(DESTDIR)$(MANDIR)/man8 $(DESTDIR)$(MANDIR)/man7
-	$(INSTALL) -c -m 755 $(STRIP) lspci setpci $(DESTDIR)$(SBINDIR)
+	$(INSTALL) -c -m 755 $(STRIP) lspci$(EXEEXT) setpci$(EXEEXT) $(DESTDIR)$(SBINDIR)
 	$(INSTALL) -c -m 755 update-pciids $(DESTDIR)$(SBINDIR)
 	$(INSTALL) -c -m 644 $(PCI_IDS) $(DESTDIR)$(IDSDIR)
 	$(INSTALL) -c -m 644 lspci.8 setpci.8 update-pciids.8 $(DESTDIR)$(MANDIR)/man8
@@ -134,7 +144,7 @@ ifeq ($(SHARED),yes)
 endif
 
 uninstall: all
-	rm -f $(DESTDIR)$(SBINDIR)/lspci $(DESTDIR)$(SBINDIR)/setpci $(DESTDIR)$(SBINDIR)/update-pciids
+	rm -f $(DESTDIR)$(SBINDIR)/lspci$(EXEEXT) $(DESTDIR)$(SBINDIR)/setpci$(EXEEXT) $(DESTDIR)$(SBINDIR)/update-pciids
 	rm -f $(DESTDIR)$(IDSDIR)/$(PCI_IDS)
 	rm -f $(DESTDIR)$(MANDIR)/man8/lspci.8 $(DESTDIR)$(MANDIR)/man8/setpci.8 $(DESTDIR)$(MANDIR)/man8/update-pciids.8
 	rm -f $(DESTDIR)$(MANDIR)/man7/pcilib.7
