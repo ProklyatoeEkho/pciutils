@@ -63,7 +63,7 @@ PCIINC_INS=lib/config.h lib/header.h lib/pci.h lib/types.h
 
 export
 
-all: lib/$(PCILIB) lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) lspci.8 setpci.8 pcilib.7 update-pciids update-pciids.8 $(PCI_IDS)
+all: lib/$(PCILIB) lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) nvapeek$(EXEEXT) lspci.8 setpci.8 pcilib.7 update-pciids update-pciids.8 $(PCI_IDS)
 
 lib/$(PCILIB): $(PCIINC) force
 	$(MAKE) -C lib all
@@ -77,6 +77,8 @@ lspci$(EXEEXT): lspci.o ls-vpd.o ls-caps.o ls-ecaps.o ls-kernel.o ls-tree.o ls-m
 	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 setpci$(EXEEXT): setpci.o common.o lib/$(PCILIB)
 	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
+nvapeek$(EXEEXT): nvapeek.o common.o lib/$(PCILIB)
+	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 LSPCIINC=lspci.h pciutils.h $(PCIINC)
 lspci.o: lspci.c $(LSPCIINC)
@@ -89,6 +91,7 @@ ls-map.o: ls-map.c $(LSPCIINC)
 
 setpci.o: setpci.c pciutils.h $(PCIINC)
 common.o: common.c pciutils.h $(PCIINC)
+nvapeek.o: nvapeek.c pciutils.h $(PCIINC)
 
 lspci: LDLIBS+=$(LIBKMOD_LIBS)
 ls-kernel.o: CFLAGS+=$(LIBKMOD_CFLAGS)
@@ -110,7 +113,7 @@ example.o: example.c $(PCIINC)
 
 clean:
 	rm -f `find . -name "*~" -o -name "*.[oa]" -o -name "\#*\#" -o -name TAGS -o -name core -o -name "*.orig"`
-	rm -f update-pciids lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) lib/config.* *.[78] pci.ids.* lib/*.pc lib/*.so lib/*.so.*
+	rm -f update-pciids lspci$(EXEEXT) setpci$(EXEEXT) example$(EXEEXT) nvapeek$(EXEEXT) lib/config.* *.[78] pci.ids.* lib/*.pc lib/*.so lib/*.so.*
 	rm -rf maint/dist
 
 distclean: clean
